@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8" />
+    <title>🎵 隨機猜歌遊戲 - 免輸入副檔名版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: rgba(0,0,0,0.5);
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        button {
+            background: #ffd369;
+            color: #333;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #ffc107;
+            transform: translateY(-2px);
+        }
+        input {
+            width: 85%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            margin-top: 15px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+        }
+        input:focus {
+            border-color: #ffd369;
+        }
+        #status, #result {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 27px;
+        }
+        .hint {
+            font-size: 13px;
+            color: #ccc;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <h1>🎧 隨機猜歌</h1>
+    <p class="hint">按「下一首」開始，輸入歌名（不需輸入 .mp3）</p>
+
+    <audio id="music"></audio>
+
+    <div>
+        <button onclick="nextSong()">🔀 下一首 / 重新開始</button>
+    </div>
+    
+    <div>
+        <button onclick="playMusic()">▶ 播放</button>
+        <button onclick="pauseMusic()">⏸ 暫停</button>
+    </div>
+
+    <div>
+        <input type="text" id="answer" placeholder="在這裡輸入歌名" onkeypress="handleKeyPress(event)" />
+    </div>
+
+    <button onclick="checkAnswer()" style="background: #28a745; color: white;">✅ 確認答案</button>
+
+    <div id="status"></div>
+    <div id="result"></div>
+</div>
+
+<script>
+/**
+ * ⚠️ 這裡填寫你的歌名（不需要加上 .mp3）
+ * 程式會自動去資料夾找「這裡的名稱.mp3」
+ */
+const songs = [
+    "幾分之幾",
+    "最好的安排",
+    "愛你沒差",
+    "愛錯",
+    "像晴天像雨天"
+];
+
+const music = document.getElementById("music");
+const status = document.getElementById("status");
+const result = document.getElementById("result");
+const answerInput = document.getElementById("answer");
+
+let currentAnswer = "";
+let timer = null;
+
+// 1. 下一首歌
+function nextSong() {
+    clearTimeout(timer);
+    result.textContent = "";
+    answerInput.value = "";
+    
+    // 隨機選一個歌名
+    const index = Math.floor(Math.random() * songs.length);
+    currentAnswer = songs[index]; // 這裡儲存的是「純歌名」，例如：幾分之幾
+
+    // 重要：這行程式碼會自動幫檔案補上 .mp3 後綴去讀取檔案
+    music.src = currentAnswer + ".mp3";
+    music.load(); 
+    
+    status.textContent = "🆕 已準備好新歌曲！";
+}
+
+// 2. 播放
+function playMusic() {
+    if (!currentAnswer) {
+        status.textContent = "⚠️ 請先按「下一首」";
+        return;
+    }
+
+    music.play().then(() => {
+        status.textContent = "🎶 正在播放 (20 秒倒數)";
+        
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            music.pause();
+            status.textContent = "⏱ 時間到！請輸入歌名";
+        }, 20000);
+    }).catch(() => {
+        alert("找不到檔案：【" + currentAnswer + ".mp3" + "】\n請確認 MP3 檔案放在 HTML 旁邊，且檔名完全一致。");
+    });
+}
+
+// 3. 暫停
+function pauseMusic() {
+    music.pause();
+    clearTimeout(timer);
+    status.textContent = "⏸ 已暫停";
+}
+
+// 4. 檢查答案
+function checkAnswer() {
+    // .trim() 會自動去掉使用者不小心打出的「前後空白」
+    const userAnswer = answerInput.value.trim();
+
+    if (!currentAnswer) {
+        result.textContent = "⚠ 請先按下一首開始遊戲";
+        return;
+    }
+
+    if (userAnswer === "") {
+        result.textContent = "⚠ 請輸入答案";
+        return;
+    }
+
+    // 這裡只比對「純歌名」，所以使用者不需要打 .mp3
+    if (userAnswer === currentAnswer) {
+        result.style.color = "#4eff4e";
+        result.textContent = "🎉 恭喜答對！答案是：" + currentAnswer;
+        music.pause();
+        clearTimeout(timer);
+    } else {
+        result.style.color = "#ff4e4e";
+        result.textContent = "❌ 答錯了，再聽看看？";
+    }
+}
+
+// 支援按 Enter 鍵直接檢查答案
+function handleKeyPress(e) {
+    if (e.key === "Enter") {
+        checkAnswer();
+    }
+}
+</script>
+</body>
+</html>
